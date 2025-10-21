@@ -20,7 +20,6 @@
     "arraybuffer.prototype.slice": "^1.0.4",
     "ast-types-flow": "^0.0.8",
     "async-function": "^1.0.0",
-    "autoprefixer": "^10.4.21",
     "available-typed-arrays": "^1.0.7",
     "axe-core": "^4.11.0",
     "axobject-query": "^4.1.0",
@@ -192,7 +191,6 @@
     "picocolors": "^1.1.1",
     "picomatch": "^2.3.1",
     "possible-typed-array-names": "^1.1.0",
-    "postcss": "^8.5.6",
     "prelude-ls": "^1.2.1",
     "prop-types": "^15.8.1",
     "punycode": "^2.3.1",
@@ -236,7 +234,6 @@
     "styled-jsx": "^5.1.6",
     "supports-color": "^7.2.0",
     "supports-preserve-symlinks-flag": "^1.0.0",
-    "tailwindcss": "^4.1.14",
     "tapable": "^2.3.0",
     "tar": "^7.5.1",
     "tinyglobby": "^0.2.15",
@@ -280,7 +277,11 @@
   },
   "homepage": "https://github.com/paulgreen920-del/self-tape#readme",
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.14",
     "@types/node": "24.8.1",
-    "@types/react": "19.2.2"
+    "@types/react": "19.2.2",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.14"
   }
 }
