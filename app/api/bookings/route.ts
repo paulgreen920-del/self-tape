@@ -1,10 +1,9 @@
-// app/api/bookings/route.ts
+﻿// app/api/bookings/route.ts
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
 // ESM-safe Prisma import
-import pkg from "@prisma/client";
-const { PrismaClient } = pkg;
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -114,7 +113,7 @@ export async function POST(req: Request) {
       data: {
         actorName: actorName ?? "",
         actorEmail: actorEmail ?? "",
-        actorTimezone: tz,              // ✅ store actor’s timezone
+        actorTimezone: tz,              // âœ… store actorâ€™s timezone
         readerId,
         startTime: start,
         endTime: end,
@@ -140,7 +139,7 @@ export async function POST(req: Request) {
       payment_intent_data: {
         application_fee_amount: feeCents,
         transfer_data: {
-          destination: reader.stripeAccountId!, // reader’s Connect acct
+          destination: reader.stripeAccountId!, // readerâ€™s Connect acct
         },
       },
       line_items: [
@@ -167,3 +166,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+
