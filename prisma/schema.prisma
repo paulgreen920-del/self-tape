@@ -1,0 +1,99 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Reader {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Identity
+  displayName     String
+  email           String   @unique
+  phone           String?
+  headshotUrl     String?
+
+  // Profile
+  timezone        String   @default("America/New_York")
+  city            String?
+  bio             String?
+
+  // Rates (stored in cents)
+  ratePer15Min    Int      @default(1500)
+  ratePer30Min    Int      @default(2500)
+  ratePer60Min    Int      @default(6000)
+
+  unions          Json     @default("[]") // ["SAG-AFTRA","AEA"]
+  languages       Json     @default("[]") // ["English","Spanish"]
+  specialties     Json     @default("[]") // ["Comedy","Drama"]
+  links           Json     @default("[]") // [{label,url}]
+
+  // Policies
+  acceptsTerms    Boolean  @default(false)
+  marketingOptIn  Boolean  @default(false)
+  isActive        Boolean  @default(true)
+
+  // Stripe Connect
+  stripeAccountId String?  // ✅ Connect Express account id (e.g., "acct_...")
+
+  // Relations
+  availability    AvailabilitySlot[]
+  bookings        Booking[]
+
+  @@index([email])
+}
+
+model AvailabilitySlot {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 0 = Sunday ... 6 = Saturday
+  dayOfWeek Int
+  startMin  Int
+  endMin    Int
+
+  reader   Reader @relation(fields: [readerId], references: [id], onDelete: Cascade)
+  readerId String
+
+  @@index([readerId, dayOfWeek])
+}
+
+enum BookingStatus {
+  PENDING
+  PAID
+  CANCELED
+  COMPLETED
+}
+
+model Booking {
+  id           String         @id @default(cuid())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  actorName    String
+  actorEmail   String
+  actorTimezone String @default("UTC")
+
+
+  reader       Reader         @relation(fields: [readerId], references: [id], onDelete: Cascade)
+  readerId     String
+
+  startTime    DateTime       // UTC
+  endTime      DateTime       // UTC
+  durationMin  Int
+  priceCents   Int            // computed at booking time
+
+  status       BookingStatus  @default(PENDING)
+  meetingUrl   String?
+  notes        String?
+
+  @@index([readerId, startTime])
+  @@index([actorEmail])
+}
