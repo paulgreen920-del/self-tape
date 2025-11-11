@@ -102,7 +102,6 @@ export default function CalendarBooking({
   const selectDate = async (date: Date | null) => {
     if (!date || !isDateAvailable(date)) return;
 
-    // Format date as YYYY-MM-DD in local timezone (not UTC)
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -115,8 +114,15 @@ export default function CalendarBooking({
         `/api/schedule/available-slots?readerId=${reader.id}&date=${dateStr}&duration=${duration}`
       );
       const data = await res.json();
+      
       if (data.ok) {
         setSlots(data.slots || []);
+        
+        // If no slots, unhighlight this day
+        if (!data.slots || data.slots.length === 0) {
+          setAvailableDays(prev => prev.filter(d => d !== dateStr));
+          setSelectedDate(null); // ← ADDED THIS LINE
+        }
       }
     } catch (err) {
       console.error("Failed to load slots:", err);

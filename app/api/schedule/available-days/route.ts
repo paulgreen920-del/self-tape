@@ -21,12 +21,16 @@ export async function GET(req: Request) {
       return NextResponse.json({ ok: false, error: "Reader not found" }, { status: 404 });
     }
 
-    // Calculate date range (today through maxAdvanceBooking days)
+    // Calculate date range (today through maxAdvanceBooking hours)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + reader.maxAdvanceBooking);
+    maxDate.setTime(maxDate.getTime() + reader.maxAdvanceBooking * 60 * 60 * 1000);
+    
+    console.log('[available-days] today:', today);
+    console.log('[available-days] maxDate:', maxDate);
+    console.log('[available-days] reader.maxAdvanceBooking hours:', reader.maxAdvanceBooking);
 
     // Get all days within range
     const availableDays: string[] = [];
@@ -73,8 +77,9 @@ export async function GET(req: Request) {
             const slotStartTime = new Date(`${dateStr}T${String(Math.floor(slotStart / 60)).padStart(2, '0')}:${String(slotStart % 60).padStart(2, '0')}:00`);
             const slotEndTime = new Date(`${dateStr}T${String(Math.floor(slotEnd / 60)).padStart(2, '0')}:${String(slotEnd % 60).padStart(2, '0')}:00`);
             
-            // Check if slot is in the future
-            if (slotStartTime <= now) {
+            // Check if slot meets minimum advance booking requirement
+            const minBookingTime = new Date(now.getTime() + reader.minAdvanceHours * 60 * 60 * 1000);
+            if (slotStartTime <= minBookingTime) {
               currentMin += duration;
               continue;
             }
@@ -93,6 +98,14 @@ export async function GET(req: Request) {
           }
           
           if (hasAvailableSlot) break;
+        }
+        
+        // DEBUG: Log Nov 25 specifically
+        if (dateStr === '2025-11-25') {
+          console.log('[available-days] Nov 25 - hasAvailableSlot:', hasAvailableSlot);
+          console.log('[available-days] Nov 25 - now:', now);
+          console.log('[available-days] Nov 25 - minBookingTime:', new Date(now.getTime() + reader.minAdvanceHours * 60 * 60 * 1000));
+          console.log('[available-days] Nov 25 - dayAvailability:', dayAvailability);
         }
         
         if (hasAvailableSlot) {

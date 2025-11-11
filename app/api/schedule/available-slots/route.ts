@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     const selectedDate = new Date(date + 'T12:00:00'); // Parse at noon to avoid timezone shift
     
     const maxDate = new Date(today);
-    maxDate.setDate(maxDate.getDate() + reader.maxAdvanceBooking);
+    maxDate.setDate(maxDate.getDate() + reader.maxAdvanceBooking * 60 * 60 * 1000);
 
     if (selectedDate < today || selectedDate > maxDate) {
       return NextResponse.json({ ok: true, slots: [] });
@@ -83,11 +83,13 @@ export async function GET(req: Request) {
         currentMin += durationMin + buffer;
       }
     }
-// Filter out slots that are in the past
+
+    // Filter out slots that don't meet minimum advance booking
     const now = new Date();
+    const minBookingTime = new Date(now.getTime() + reader.minAdvanceHours * 60 * 60 * 1000);
     const futureSlots = slots.filter((slot) => {
       const slotStart = new Date(slot.startTime);
-      return slotStart > now;
+      return slotStart > minBookingTime;
     });
 
     // Check existing bookings for conflicts

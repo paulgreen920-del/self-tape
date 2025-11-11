@@ -36,9 +36,10 @@ model Reader {
   ratePer60Min    Int      @default(6000)
 
   // Booking settings
-  bookingBuffer     Int      @default(0)  // minutes of buffer between sessions
-  maxAdvanceBooking Int      @default(15)  // how many days in advance can book
-
+  bookingBuffer     Int      @default(0)   // minutes of buffer between sessions
+  maxAdvanceBooking Int      @default(360)  // how many hours in advance can book
+  minAdvanceHours   Int      @default(0)   // minimum hours notice required for booking
+  
   unions          Json     @default("[]") // ["SAG-AFTRA","AEA"]
   languages       Json     @default("[]") // ["English","Spanish"]
   specialties     Json     @default("[]") // ["Comedy","Drama"]
