@@ -4,9 +4,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider          = "postgresql"
+  url               = env("DATABASE_URL")               // can remain your proxy URL for runtime
+  directUrl         = env("DIRECT_DATABASE_URL")        // MUST be a direct Postgres URL (not db.prisma.io)
+  // shadowDatabaseUrl = env("DIRECT_SHADOW_DATABASE_URL") // direct URL to a separate "shadow" DB
 }
+
 
 model Reader {
   id              String   @id @default(cuid())
@@ -23,11 +26,18 @@ model Reader {
   timezone        String   @default("America/New_York")
   city            String?
   bio             String?
+  playableAgeMin  Int?
+  playableAgeMax  Int?
+  gender          String?
 
   // Rates (stored in cents)
   ratePer15Min    Int      @default(1500)
   ratePer30Min    Int      @default(2500)
   ratePer60Min    Int      @default(6000)
+
+  // Booking settings
+  bookingBuffer     Int      @default(0)  // minutes of buffer between sessions
+  maxAdvanceBooking Int      @default(15)  // how many days in advance can book
 
   unions          Json     @default("[]") // ["SAG-AFTRA","AEA"]
   languages       Json     @default("[]") // ["English","Spanish"]
@@ -40,11 +50,12 @@ model Reader {
   isActive        Boolean  @default(true)
 
   // Stripe Connect
-  stripeAccountId String?  // ✅ Connect Express account id (e.g., "acct_...")
+  stripeAccountId String?
 
   // Relations
   availability    AvailabilitySlot[]
   bookings        Booking[]
+  calendars       CalendarConnection[]   // ← NEW
 
   @@index([email])
 }
@@ -73,27 +84,60 @@ enum BookingStatus {
 }
 
 model Booking {
-  id           String         @id @default(cuid())
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id            String         @id @default(cuid())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  actorName    String
-  actorEmail   String
+  actorName     String
+  actorEmail    String
   actorTimezone String @default("UTC")
 
+  reader    Reader   @relation(fields: [readerId], references: [id], onDelete: Cascade)
+  readerId  String
 
-  reader       Reader         @relation(fields: [readerId], references: [id], onDelete: Cascade)
-  readerId     String
+  startTime   DateTime // UTC
+  endTime     DateTime // UTC
+  durationMin Int
+  priceCents  Int      // computed at booking time
 
-  startTime    DateTime       // UTC
-  endTime      DateTime       // UTC
-  durationMin  Int
-  priceCents   Int            // computed at booking time
-
-  status       BookingStatus  @default(PENDING)
-  meetingUrl   String?
-  notes        String?
+  status      BookingStatus  @default(PENDING)
+  meetingUrl  String?
+  notes       String?
 
   @@index([readerId, startTime])
   @@index([actorEmail])
+  @@unique([readerId, actorEmail, startTime, endTime], name: "uniq_reader_actor_timeslot")
+}
+
+// ===== NEW: calendar connections (Google first; MS later) =====
+enum CalendarProvider {
+  GOOGLE
+  MICROSOFT
+  ICAL_FEED_READONLY // for one-way export only (no tokens)
+}
+
+model CalendarConnection {
+  id         String           @id @default(cuid())
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  provider   CalendarProvider
+  reader     Reader           @relation(fields: [readerId], references: [id], onDelete: Cascade)
+  readerId   String
+
+  // OAuth tokens (Google/Microsoft). Null for ICAL_FEED_READONLY.
+  accessToken    String?
+  refreshToken   String?
+  expiresAt      DateTime?       // when access token expires
+  scope          String?         // granted scopes
+
+  // Target calendar to write into
+  externalCalendarId String?     // e.g., "primary" for Google
+
+  // Optional audit/debug
+  lastSyncAt   DateTime?
+  lastError    String?
+
+  @@unique([readerId, provider]) // one connection per provider per reader
+  @@index([readerId, provider])
 }

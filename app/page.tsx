@@ -1,3 +1,6 @@
+// app/page.tsx
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-emerald-50 to-white px-6">
@@ -10,24 +13,27 @@ export default function Home() {
           Actors helping actors — find readers, book sessions, and level up your
           self-tapes effortlessly.
         </p>
+
+        {/* ACTIONS */}
         <div className="mt-8 flex flex-wrap justify-center gap-4">
-          <a
-            href="/reader"
-            className="px-6 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition"
+          <Link
+            href="/onboarding/reader"
+            className="px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white font-semibold rounded-xl transition"
           >
             Become a Reader
-          </a>
-          <a
-            href="/actor"
-            className="px-6 py-3 bg-white border border-emerald-600 text-emerald-700 font-semibold rounded-xl hover:bg-emerald-50 transition"
+          </Link>
+
+          <Link
+            href="/readers"
+            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl transition"
           >
             Find a Reader
-          </a>
+          </Link>
         </div>
       </section>
 
       {/* FEATURE SECTION */}
-      <section className="max-w-5xl w-full grid sm:grid-cols-3 gap-8 py-20 border-t">
+      <section className="max-w-5xl w-full grid sm:grid-cols-3 gap-8 py-20 border-top">
         {[
           {
             title: "Fast Booking",

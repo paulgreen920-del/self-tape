@@ -17,6 +17,11 @@ export default function ReaderOnboardingMini() {
   const [city, setCity] = useState("");
   const [bio, setBio] = useState("");
 
+  // Playable age (numeric min/max) + gender
+  const [playableAgeMin, setPlayableAgeMin] = useState<number | "">("");
+  const [playableAgeMax, setPlayableAgeMax] = useState<number | "">("");
+  const [gender, setGender] = useState("");
+
   // Rates in dollars (UI)
   const [rate15Usd, setRate15Usd] = useState<number | "">(15);
   const [rateUsd, setRateUsd] = useState<number | "">(25); // 30-min
@@ -34,7 +39,6 @@ export default function ReaderOnboardingMini() {
   const [links, setLinks] = useState<LinkItem[]>([{ label: "", url: "" }]);
 
   const [busy, setBusy] = useState(false);
-
   const canSubmit = displayName.trim().length > 0 && /\S+@\S+\.\S+/.test(email);
 
   function toggleItem(value: string, setFn: React.Dispatch<React.SetStateAction<string[]>>) {
@@ -74,34 +78,82 @@ export default function ReaderOnboardingMini() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit) return;
+
+    // Guard: age range
+    if (
+      playableAgeMin !== "" &&
+      playableAgeMax !== "" &&
+      Number(playableAgeMin) > Number(playableAgeMax)
+    ) {
+      alert("Playable age: Min must be ≤ Max.");
+      return;
+    }
+
+    if (uploading) {
+      alert("Please wait for the headshot to finish uploading.");
+      return;
+    }
+
     setBusy(true);
     try {
       const cleanLinks = links.filter((l) => l.label.trim() && l.url.trim());
+
+      const payload = {
+        displayName,
+        email,
+        phone,
+        timezone,
+        city,
+        bio,
+        playableAgeMin: playableAgeMin === "" ? null : Number(playableAgeMin),
+        playableAgeMax: playableAgeMax === "" ? null : Number(playableAgeMax),
+        gender: gender || null,
+        headshotUrl,
+        rate15Usd: rate15Usd === "" ? 0 : rate15Usd,
+        rateUsd: rateUsd === "" ? 0 : rateUsd,
+        rate60Usd: rate60Usd === "" ? 0 : rate60Usd,
+        unions,
+        languages,
+        specialties,
+        links: cleanLinks,
+      };
+
+      console.log("[onboarding] POST /api/readers payload:", payload);
+
       const res = await fetch("/api/readers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          displayName,
-          email,
-          phone,
-          timezone,
-          city,
-          bio,
-          headshotUrl, // full URL
-          rate15Usd: rate15Usd === "" ? 0 : rate15Usd,
-          rateUsd: rateUsd === "" ? 0 : rateUsd,
-          rate60Usd: rate60Usd === "" ? 0 : rate60Usd,
-          unions,
-          languages,
-          specialties,
-          links: cleanLinks, // [{label,url}]
-        }),
+        body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Error");
-      alert(`Saved! readerId: ${data.readerId}`);
 
-      // reset
+      // Read as text first, then safely try JSON (prevents crashes on HTML/stack traces)
+      const raw = await res.text().catch(() => "");
+      let data: any = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        console.warn("[onboarding] Non-JSON response:", raw.slice(0, 300));
+      }
+
+      if (!res.ok || !data?.ok) {
+        if (res.status === 409) {
+          alert("That email is already registered as a reader. Try a different email.");
+        } else {
+          const msg =
+            data?.error ||
+            `Failed to save (HTTP ${res.status}). ${raw ? raw.slice(0, 200) : ""}`;
+          alert(msg);
+        }
+        return;
+      }
+
+      const readerId = data?.readerId || data?.id;
+      if (!readerId) {
+        alert("Saved, but missing readerId from server response.");
+        return;
+      }
+
+      // Minimal reset (optional)
       setDisplayName("");
       setEmail("");
       setPhone("");
@@ -109,6 +161,9 @@ export default function ReaderOnboardingMini() {
       setCity("");
       setBio("");
       setHeadshotUrl("");
+      setPlayableAgeMin("");
+      setPlayableAgeMax("");
+      setGender("");
       setRate15Usd(15);
       setRateUsd(25);
       setRate60Usd(60);
@@ -116,8 +171,13 @@ export default function ReaderOnboardingMini() {
       setLanguages([]);
       setSpecialties([]);
       setLinks([{ label: "", url: "" }]);
+
+      // Use hard redirect to avoid any router quirks
+      window.location.href = `/onboarding/schedule?readerId=${encodeURIComponent(readerId)}`;
+      return;
     } catch (err: any) {
-      alert(err.message || "Failed");
+      console.error("[onboarding] submit error:", err);
+      alert(err?.message || "Unexpected error while saving.");
     } finally {
       setBusy(false);
     }
@@ -227,6 +287,53 @@ export default function ReaderOnboardingMini() {
             onChange={(e) => setBio(e.target.value)}
             placeholder="Tell actors what it's like to work with you."
           />
+        </div>
+
+        {/* Playable Age & Gender */}
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium">Playable Age Range</label>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={120}
+                className="border rounded px-3 py-2 w-20 text-center"
+                placeholder="Min"
+                value={playableAgeMin}
+                onChange={(e) => setPlayableAgeMin(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+              <span>–</span>
+              <input
+                type="number"
+                min={0}
+                max={120}
+                className="border rounded px-3 py-2 w-20 text-center"
+                placeholder="Max"
+                value={playableAgeMax}
+                onChange={(e) => setPlayableAgeMax(e.target.value === "" ? "" : Number(e.target.value))}
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-500">Numbers only — your typical playable age range.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium">Gender</label>
+            <select
+              name="gender"
+              className="w-full rounded-md border px-3 py-2 bg-white"
+              value={gender}
+              onChange={(e) => setGender(e.target.value)}
+            >
+              <option value="" disabled>Select gender</option>
+              <option value="Female">Female</option>
+              <option value="Male">Male</option>
+              <option value="Non-binary">Non-binary</option>
+              <option value="Transgender">Transgender</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
         </div>
 
         {/* Rates */}
