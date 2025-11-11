@@ -53,6 +53,12 @@ model Reader {
   // Stripe Connect
   stripeAccountId String?
 
+  // Subscription fields
+  stripeCustomerId       String?   @unique
+  stripeSubscriptionId   String?   @unique
+  subscriptionStatus     String?   // active, canceled, past_due, etc.
+  subscriptionEndsAt     DateTime?
+
   // Relations
   availability    AvailabilitySlot[]
   bookings        Booking[]

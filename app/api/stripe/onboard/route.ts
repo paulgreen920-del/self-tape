@@ -51,7 +51,7 @@ export async function POST(req: Request) {
     const accountLink = await stripe.accountLinks.create({
       account: accountId,
       refresh_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/payment?readerId=${readerId}`,
-      return_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/complete?readerId=${readerId}`,
+      return_url: `${process.env.NEXT_PUBLIC_URL}/onboarding/subscribe?readerId=${readerId}`,
       type: "account_onboarding",
     });
 
