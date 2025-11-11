@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 
+// Force dynamic rendering for this client component
+export const dynamic = "force-dynamic";
+
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 type TimeSlot = {
